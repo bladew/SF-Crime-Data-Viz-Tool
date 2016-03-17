@@ -5,29 +5,17 @@ html, body {
     }
 
 #map {
-    height: 100%;
+    height: 70%;
     }
 
-#floating-panel {
-    position: absolute;
-    top: 10px;
-    left: 25%;
-    z-index: 5;
-    background-color: #fff;
-    padding: 5px;
-    border: 1px solid #999;
+#buttons {
+    border: none;
+    color: white;
+    display: inline-block;
+    padding: 10px 20px;
     text-align: center;
-    font-family: 'Roboto','sans-serif';
-    line-height: 30px;
-    padding-left: 10px;
-    }
-
-#floating-panel {
+    text-decoration: none;
+    font-size: 12px;
+    font-family: Verdana;
     background-color: #fff;
-    border: 1px solid #999;
-    left: 25%;
-    padding: 5px;
-    position: absolute;
-    top: 10px;
-    z-index: 5;
     }

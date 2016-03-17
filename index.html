@@ -2,76 +2,83 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Heatmaps</title>
+        <title>Crime Heatmaps</title>
         <link rel="stylesheet" type="text/css" href="css/style.css">
         <script src="https://maps.googleapis.com/maps/api/js?key=your_own_key&libraries=visualization"></script>
-<script src="http://d3js.org/d3.v3.js"></script>
+        <script src="http://d3js.org/d3.v3.js"></script>
     </head>
 
     <body>
-        <div id="floating-panel">
-            <button onclick="toggle_heatmap()">Toggle Heatmap</button>
-            <button onclick="changeRadius()">Change radius</button>
-            <button onclick="change_fraud()">Fraud</button>
-            <button onclick="change_robbery()">Robbery</button>
+        <div id="buttons">
+            <button onclick="change('fraud')">Fraud</button>
+            <button onclick="change('robbery')">Robbery</button>
+            <button onclick="change('runaway')">Runaway</button>
+            <button onclick="change('suicide')">Suicide</button>
+            <button onclick="change('arson')">Arson</button>
+            <button onclick="change('kidnapping')">Kidnapping</button>
+            <button onclick="change('prostitution')">Prostitution</button>
+            <button onclick="change('assault')">Assault</button>
+            <button onclick="change('gambling')">Gambling</button>
+            <button onclick="change('trespass')">Trespass</button>
+            <button onclick="change('burglary')">Burglary</button>
         </div>
 
         <div id="map"></div>
             <script>
                 var map, heatmap,selected_category = "fraud",
-                category = {"fraud":"data/fraud.csv","robbery":"data/robbery.csv"};
+                category = {"fraud":"data/fraud.csv",
+                            "runaway":"data/runaway.csv",
+                            "suicide":"data/suicide.csv",
+                            "arson":"data/arson.csv",
+                            "kidnapping":"data/kidnapping.csv",
+                            "prostitution":"data/prostitution.csv",
+                            "assault":"data/assault.csv",
+                            "gambling":"data/gambling.csv",
+                            "trespass":"data/trespass.csv",
+                            "robbery":"data/robbery.csv",
+                            "burglary":"data/burglary.csv"};
 
-      function init_map() {
-        map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 13,
-          center: {lat: 37.775, lng: -122.434},
-          mapTypeId: google.maps.MapTypeId.SATELLITE
-        });
+                function init_map() {
+                    map = new google.maps.Map(document.getElementById('map'), {
+                        zoom: 13,
+                        center: {lat: 37.751843, lng: -122.446185},
+                        mapTypeId: google.maps.MapTypeId.SATELLITE
+                    });
 
-        heatmap = new google.maps.visualization.HeatmapLayer({
-            map: map
-        });
-        set_data();
-        console.log(heatmap.getData());
-      }
-
-      function toggle_heatmap() {
-        heatmap.setMap(heatmap.getMap() ? null : map);
-      }
-
-      function changeRadius() {
-        heatmap.set('radius', heatmap.get('radius') ? null : 20);
-      }
-
-      function change_fraud () {
-          if (selected_category != "fraud") {
-            selected_category = "fraud";
-            set_data();
-          };
-      }
-
-      function change_robbery () {
-          if (selected_category != "robbery") {
-            selected_category = "robbery";
-            set_data();
-          };
-      }
-
-      function set_data() {
-            d3.csv(category[selected_category], 
-                function(d) {
-                    return new google.maps.LatLng(Number(d.Y), Number(d.X));
-                }, 
-                function(error, data) {
-                    if (data.length > 20000) { data = data.slice(0,20000)};
-                    heatmap.setData(data);
-                    console.log(heatmap.getData().j)
+                    heatmap = new google.maps.visualization.HeatmapLayer({
+                        map: map
+                    });
+                    set_data();
                 }
-            );
-    }
 
-    init_map();
-        </script>
-    
+                function change (type) {
+                    if (selected_category != type) {
+                        selected_category = type;
+                        set_data();
+                    };
+                }
+
+                function set_data() {
+                    d3.csv(category[selected_category], 
+                    function(d) {
+                        return new google.maps.LatLng(Number(d.Y), Number(d.X));
+                    }, 
+                    function(error, data) {
+                        if (data.length > 20000) { data = data.slice(0,20000)};
+                            heatmap.setData(data);
+                    }
+                    );
+                }
+
+                init_map();
+            </script>
+        <h2>Heatmap of different types of crime</h2>
+        <h3>Description</h3>
+        <p>This is the crime heatmap for San Francisco. Click the button on the top of the page to choose the category to plot. One thing that should be noticed is that we do sampling on the dataset rather than input whole dataset for any category. This sampling is because the visual performance of Google Map is reduced when there is too much data.</p>
+        <h3>Reference</h3>
+            <ol>
+            <li>Heatmap API/example: https://developers.google.com/maps/documentation/javascript/examples/layer-heatmap</li>
+            <li>Data source: https://www.kaggle.com/c/sf-crime</li>
+            </ol>
     </body>
 </html>
