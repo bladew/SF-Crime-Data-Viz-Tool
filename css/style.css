@@ -1,21 +1,127 @@
-html, body {
+.explorer {
+    width: 2000px;
     height: 100%;
     margin: 0;
     padding: 0;
-    }
+    background-color:#555555;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color:#555555;
+}
+
+#header {
+    background-color:black;
+    color:#BFBFBF;
+    text-align:center;
+    padding:20px;
+    font-size: 40px;
+}
+
+#footer {
+    background-color:black;
+    color:white;
+    clear:both;
+    text-align:center;
+   padding:5px;      
+}
+
+#tool1 {
+    width: 100%;
+    height: 50%;
+    background-color:#171414;
+    color:#BFBFBF;
+    text-align:center;
+    padding:20px;
+    font-size: 40px;
+}
+
+#tool2 {
+    width: 100%;
+    height: 50%;
+    background-color:black;
+    color:#BFBFBF;
+    text-align:center;
+    padding:20px;
+    font-size: 40px;
+}
+
+#title {
+    color:#BFBFBF;
+    padding:10px;
+    font-size: 20px;
+}
 
 #map {
-    height: 70%;
+    height: 1300px;
+    width: 600px;
+    float:left;
     }
 
-#buttons {
+#heatmap {
+    height: 100%;
+    width: 100%;
+}
+
+#category.buttons {
+    position: absolute;
+    z-index: 5;
+    }
+
+.button {
+    background-color: black ;
     border: none;
     color: white;
-    display: inline-block;
-    padding: 10px 20px;
+    padding: 8px 16px;
     text-align: center;
     text-decoration: none;
+    display: inline-block;
     font-size: 12px;
-    font-family: Verdana;
-    background-color: #fff;
-    }
+    margin: 2px 2px;
+    cursor: pointer;
+}
+
+#year.buttons {
+    position: absolute;
+    top: 6%;
+    z-index: 5;
+}
+
+path.line { 
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
+
+.axis path, .axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: Consolas, courier;
+    font-size: 11px;
+    fill: white;
+}
+
+.navi{
+    position: absolute;
+    left: 25%;
+    top: 7%;
+    z-index: 5;
+    background-color: black;
+    border: none;
+    color: #BFBFBF;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}

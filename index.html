@@ -2,83 +2,23 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Crime Heatmaps</title>
+        <title>Crime Data Viz Tools</title>
         <link rel="stylesheet" type="text/css" href="css/style.css">
-        <script src="https://maps.googleapis.com/maps/api/js?key=your_own_key&libraries=visualization"></script>
-        <script src="http://d3js.org/d3.v3.js"></script>
     </head>
 
     <body>
-        <div id="buttons">
-            <button onclick="change('fraud')">Fraud</button>
-            <button onclick="change('robbery')">Robbery</button>
-            <button onclick="change('runaway')">Runaway</button>
-            <button onclick="change('suicide')">Suicide</button>
-            <button onclick="change('arson')">Arson</button>
-            <button onclick="change('kidnapping')">Kidnapping</button>
-            <button onclick="change('prostitution')">Prostitution</button>
-            <button onclick="change('assault')">Assault</button>
-            <button onclick="change('gambling')">Gambling</button>
-            <button onclick="change('trespass')">Trespass</button>
-            <button onclick="change('burglary')">Burglary</button>
-        </div>
+    	<div id = "tool1">
+    		Crime Data Explorer
+    		<div> <a href="./explorer.html"><img src="./explorer.png" style="width:30%;height:30%;"> </a></div>
+    	</div>
+    	<div id = "tool2">
+    		Crime Heatmap
+    		<div> <a href="./heatmap.html"><img  src="./heatmap.png" style="width:30%;height:30%;"></a> </div>
+    	</div>
 
-        <div id="map"></div>
-            <script>
-                var map, heatmap,selected_category = "fraud",
-                category = {"fraud":"data/fraud.csv",
-                            "runaway":"data/runaway.csv",
-                            "suicide":"data/suicide.csv",
-                            "arson":"data/arson.csv",
-                            "kidnapping":"data/kidnapping.csv",
-                            "prostitution":"data/prostitution.csv",
-                            "assault":"data/assault.csv",
-                            "gambling":"data/gambling.csv",
-                            "trespass":"data/trespass.csv",
-                            "robbery":"data/robbery.csv",
-                            "burglary":"data/burglary.csv"};
+    	<div id = "footer">Copyright @ ZLW</div>
+    	
 
-                function init_map() {
-                    map = new google.maps.Map(document.getElementById('map'), {
-                        zoom: 13,
-                        center: {lat: 37.751843, lng: -122.446185},
-                        mapTypeId: google.maps.MapTypeId.SATELLITE
-                    });
-
-                    heatmap = new google.maps.visualization.HeatmapLayer({
-                        map: map
-                    });
-                    set_data();
-                }
-
-                function change (type) {
-                    if (selected_category != type) {
-                        selected_category = type;
-                        set_data();
-                    };
-                }
-
-                function set_data() {
-                    d3.csv(category[selected_category], 
-                    function(d) {
-                        return new google.maps.LatLng(Number(d.Y), Number(d.X));
-                    }, 
-                    function(error, data) {
-                        if (data.length > 20000) { data = data.slice(0,20000)};
-                            heatmap.setData(data);
-                    }
-                    );
-                }
-
-                init_map();
-            </script>
-        <h2>Heatmap of different types of crime</h2>
-        <h3>Description</h3>
-        <p>This is the crime heatmap for San Francisco. Click the button on the top of the page to choose the category to plot. One thing that should be noticed is that we do sampling on the dataset rather than input whole dataset for any category. This sampling is because the visual performance of Google Map is reduced when there is too much data.</p>
-        <h3>Reference</h3>
-            <ol>
-            <li>Heatmap API/example: https://developers.google.com/maps/documentation/javascript/examples/layer-heatmap</li>
-            <li>Data source: https://www.kaggle.com/c/sf-crime</li>
-            </ol>
     </body>
+
 </html>

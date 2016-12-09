@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html class = "explorer">
+    <head>
+        <meta charset="utf-8">
+        <title>Crime Stacked Area Charts</title>
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+        <script src="http://d3js.org/d3.v3.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3LxJV9iIW3FzxhbccjNy9W1Trg-yBvBE&libraries=geometry"></script>
+        <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" src="js/polygon.min.js"></script>
+    </head>
+
+    <body class = "explorer">
+        <div id = "header">Crime Data Explorer of San Francisco</div>
+        <div id="side">
+            <input id="reset" value="Reset" type="button" class="navi"/>
+        </div>
+        <div id = "map" ></div>
+        <div id = "title">Crime-Date from 2003 to 2015 (click legend on right to plot one type)</div>
+        <div id = "plot_canvas"></div>
+        <div id = "single_canvas"></div>
+        <div id = "title">Crime-Day of Week from 2003 to 2015</div>
+        <div id = "plot_canvas2"></div>
+            <script>
+                var start_date= new Date("2003-01"), end_date = new Date("2015-06"),
+                    cleaned_data = [],
+                    months = d3.time.month.range(start_date, end_date, 1),
+                    area_coords = [{lat: 37.779933, lng: -122.487555}, 
+                                    {lat: 37.782376, lng: -122.408591}, 
+                                    {lat: 37.729852, lng: -122.401639},
+                                    {lat: 37.726051, lng: -122.472535}],
+                    selected_area = new google.maps.Polygon({paths: area_coords}),
+                    margin = { top: 20, right: 100, bottom: 20, left: 40 },
+          			width = 1200 + margin.left + margin.right,
+          			height = 360 + margin.top + margin.bottom,
+                    valueline = d3.svg.line()
+                                .x(function(d) { return x(new Date(d.date.getFullYear(), 0)); })
+                                .y(function(d) { return y(d.num); });
+          			selected_category = "fraud",
+                    normalize = true,
+                	category = {"fraud":"data/fraud.csv",
+                            "runaway":"data/runaway.csv",
+                            "burglary":"data/burglary.csv",
+                            "suicide":"data/suicide.csv",
+                            "kidnapping":"data/kidnapping.csv",
+                            "prostitution":"data/prostitution.csv",
+                            "assault":"data/assault.csv",
+                            "gambling":"data/gambling.csv",
+                            "trespass":"data/trespass.csv",
+                            "robbery":"data/robbery.csv"},
+                    color_book = d3.scale.ordinal()
+                                    .range(["#FF6666","#FF9966","#FFCC33","#FFFF99","#CCFF99","#99CC66","#99CCCC","#0099FF","#CC99FF","#990099"])
+                                    .domain(d3.keys(category));;
+                    map = new google.maps.Map(document.getElementById('map'), {
+                        zoom: 12,
+                        center: {lat: 37.751843, lng: -122.446185},
+                        mapTypeId: google.maps.MapTypeId.SATELLITE
+                    });
+
+
+                // polygon creator
+                var creator = new PolygonCreator(map);
+
+                google.maps.event.addListener(map, 'click', function(event) {
+                    console.log(area_coords);
+
+                     // reset selected area
+                    $('#reset').click(function(){ 
+                        creator.destroy();
+                        creator=null;                
+                        creator=new PolygonCreator(map);
+                        area_coords = [];
+                    });
+
+                    if (area_coords.length == 4) {
+                        area_coords = [];} 
+                    area_coords.push(event.latLng);
+                    if (area_coords.length == 4) {
+                        selected_area = new google.maps.Polygon({paths: area_coords});
+                        set_data();
+                    };
+
+                });
+
+                // Set the ranges
+      			var x = d3.time.scale().range([0, width - margin.right - margin.left - 5]).domain([start_date, end_date]),
+      				y = d3.scale.linear().range([height - margin.bottom - margin.top, 0]).domain([0,1]),
+	      			// Define the axes
+    	  			xAxis = d3.svg.axis().scale(x).ticks(d3.time.month, 3).tickFormat(d3.time.format("%y")).orient("bottom"),
+					yAxis = d3.svg.axis().scale(y).tickFormat(d3.format('.2f')).orient("left").ticks(10);
+
+                // set up all svg
+                // svg for stacked area graph
+                svg_plot_canvas = d3.select("#plot_canvas").append("svg")
+                                    .attr("width", width)
+                                    .attr("height", height)
+                                    .append("g")
+                                    .attr("transform", "translate(" + margin.left + ',' + margin.top +")");
+
+                svg_plot_canvas.append("g")
+                    .attr("transform", "translate(0," + (height - margin.bottom - margin.top) +")")
+                    .attr("class", "axis")
+                    .attr("id", "xAxis")
+                    .call(xAxis);
+
+                svg_plot_canvas.append("g")
+                    .attr("class", "axis")
+                    .attr("id", "yAxis")
+                    .call(yAxis);
+
+                // draw the legends for crime categories
+                var legend = svg_plot_canvas.selectAll(".legend")
+                                        .data(Object.keys(category))
+                                        .enter().append("g")
+                                        .attr("class", "legend")
+                                        .attr("transform", function(d, i) { return "translate(0," + i * margin.right/3 + ")"; });
+
+                legend.append("rect")
+                    .attr("x", width - margin.right * 1.5)
+                    .attr("width", 20)
+                    .attr("height", 20)
+                    .on("click", function(d) { plot_single_type(d); })
+                    .style("fill", function(d) {return color_book(d)});
+
+                legend.append("text")
+                    .attr("x", width - margin.right * 1.3)
+                    .attr("y", 9)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "start")
+                    .text(function(d) { return d; });
+
+                // plot single line chart
+                // y, valueline and axis for plot single line chart of a specific type of crime
+                var y_single = d3.scale.linear().range([height - margin.bottom - margin.top, 0]).domain([0,400]),
+                    valueline = d3.svg.line()
+                                .x(function(d) { return x(d.date); })
+                                .y(function(d) { return y_single(d.num); }),
+                    yAxis_single = yAxis = d3.svg.axis().scale(y_single).tickFormat(d3.format('.0f')).orient("left").ticks(10);
+
+                svg_single = d3.select("#single_canvas").append("svg")
+                                .attr("width", width)
+                                .attr("height", height)
+                                .append("g")
+                                .attr("transform", "translate(" + margin.left + ',' + margin.top +")");
+
+                svg_single.append("g")
+                            .attr("transform", "translate(0," + (height - margin.bottom - margin.top) +")")
+                            .attr("class", "axis")
+                            .attr("id", "xAxis")
+                            .call(xAxis);
+
+                svg_single.append("g")
+                            .attr("class", "axis")
+                            .attr("id", "yAxis")
+                            .call(yAxis_single);
+
+                function plot_single_type (type) {
+                    if (cleaned_data.length != Object.keys(category).length) {
+                        return
+                    };
+                    for (var i = cleaned_data.length - 1; i >= 0; i--) {
+                        if (cleaned_data[i].type == type) {
+                            data = cleaned_data[i].values;
+                            // update the y axis
+                            var max_y = d3.max(data, function(d) { return d.num; });
+                            y_single.domain([0, max_y]);
+                            yAxis_single.scale(y_single);
+                            svg_single.select("#yAxis").call(yAxis_single);
+                        // Add the valueline path.
+                    line = svg_single.selectAll("path.line").data([data])
+                                    .style("stroke", color_book(type))
+                                    .attr("d", valueline(data));
+                    line.enter()
+                        .append("path")
+                        .attr("class", "line")
+                        .style("stroke", color_book(type))
+                        .attr("d", valueline(data));
+                        }; 
+                    };
+                }
+
+                // stacked bar chart for crime-dayofweek
+                var margin2 = { top: 20, right: 60, bottom: 20, left: 60 },
+                    width2 = 1200 + margin2.left + margin2.right,
+                    height2 = 360 + margin2.top + margin2.bottom,
+                    x2 = d3.scale.linear().range([0, width2 - margin2.right - margin2.left - 5]).domain([0,8]),
+                    y2 = d3.scale.linear().range([height2 - margin2.bottom - margin2.top, 0]).domain([0,1]),
+                    // Define the axes
+                    xAxis2 = d3.svg.axis().scale(x2).ticks(7).orient("bottom"),
+                    yAxis2 = d3.svg.axis().scale(y2).tickFormat(d3.format('.2f')).orient("left").ticks(10),
+                    cleaned_data2= [],
+                    stack2 = d3.layout.stack()
+                                .values(function(d) {return d.values;})
+                                .x(function(d) { return x(d.dayofweek); })
+                                .y(function(d) { return d.num; });
+
+                svg_plot_canvas2 = d3.select("#plot_canvas2").append("svg")
+                                            .attr("width", width2)
+                                            .attr("height", height2)
+                                            .append("g")
+                                            .attr("transform", "translate(" + margin2.left + ',' + margin2.top +")");
+
+                svg_plot_canvas2.append("g")
+                            .attr("transform", "translate(0," + (height2 - margin2.bottom - margin2.top) +")")
+                            .attr("class", "axis")
+                            .attr("id", "xAxis")
+                            .call(xAxis2);
+
+                svg_plot_canvas2.append("g")
+                            .attr("class", "axis")
+                            .attr("id", "yAxis")
+                            .call(yAxis2);
+
+                var area = d3.svg.area()
+                            .x(function(d) { return x(d.date); })
+                            .y0(function(d) { return y(d.y0); })
+                            .y1(function(d) { return y(d.y0 + d.y); }),
+                    stack = d3.layout.stack().values(function(d) {return d.values;}).x(function(d) { return x(d.date); })
+                            .y(function(d) { return d.num; })
+
+                function set_data() {
+                    for (var key in category) {
+                        if (category.hasOwnProperty(key)) {
+                            set_data_onetype(key);
+                            set_data_onetype_dayofweek(key);
+                        }
+                        svg_single.selectAll("path.line").data([]).exit().remove();
+                    }
+
+                }
+
+                function set_data_onetype(selected_category) {
+                    d3.csv(category[selected_category], 
+                    function(d) {
+                        if (google.maps.geometry.poly.containsLocation(new google.maps.LatLng(Number(d.Y), Number(d.X)), selected_area)) {
+                            date = new Date(d.Dates);
+                            return [{date:date, num :1}]
+                        };
+                    }, 
+                    function(error, data) {
+                    	if (error != null) {
+                    		console.log(error); 
+                    		return};
+
+                        for (var i = 0; i < months.length; i++) {
+                            data.push([{date:months[i], num :0}]);
+                        };
+
+                        data.sort(function(a, b){
+                                    // Compare the 2 dates
+                                    if(a[0].date < b[0].date) return -1;
+                                    if(a[0].date > b[0].date) return 1;
+                                    return 0;
+                                });
+
+                    	data = data.reduce(function (a, b) {
+                    		if (a[a.length-1].date.getFullYear() == b[b.length-1].date.getFullYear() && a[a.length-1].date.getMonth() == b[b.length-1].date.getMonth()) {
+                    			a[a.length-1].num += b[b.length-1].num;
+                    			return a;
+                    		} else{
+                    			return a.concat(b);
+                    		};
+                    	});
+
+                        var new_data = {type: selected_category, values: data}
+
+                        if (cleaned_data.length == Object.keys(category).length) {
+                            cleaned_data = [];} 
+                            cleaned_data.push(new_data);
+                        if (cleaned_data.length == Object.keys(category).length) {
+                            plot_area_graph();
+                        };
+                    }
+                    );
+                }
+
+                function set_data_onetype_dayofweek(selected_category) {
+                    d3.csv(category[selected_category], 
+                    function(d) {
+                        date = new Date(d.Dates);
+                        if (google.maps.geometry.poly.containsLocation(new google.maps.LatLng(Number(d.Y), Number(d.X)), selected_area)) {
+                            date = new Date(d.Dates);
+                            return [{dayofweek:date.getDay(), num : 1}]
+                        }; 
+                    }, 
+                    function(error, data) {
+                        if (error != null) {
+                            console.log(error); 
+                            return};
+
+                        for (var i = 0; i < 7; i++) {
+                            data.push([{dayofweek: i, num :0}]);
+                        };
+
+                        data.sort(function(a, b){
+                                    // Compare the 2 dates
+                                    if(a[0].dayofweek < b[0].dayofweek) return -1;
+                                    if(a[0].dayofweek > b[0].dayofweek) return 1;
+                                    return 0;
+                                });
+
+                        data = data.reduce(function (a, b) {
+                            if (a[a.length-1].dayofweek == b[b.length-1].dayofweek) {
+                                a[a.length-1].num += b[b.length-1].num;
+                                return a;
+                            } else{
+                                return a.concat(b);
+                            };
+                        });
+
+                        var new_data = {type: selected_category, values: data}
+
+                        if (cleaned_data2.length == Object.keys(category).length) {
+                            cleaned_data2 = [];} 
+                        cleaned_data2.push(new_data);
+                        if (cleaned_data2.length == Object.keys(category).length) {
+                            plot_dayofweek_graph();
+                        };
+                        
+                    }
+                    );
+                }
+
+
+                function plot_dayofweek_graph () {
+                    stack_data = stack2(cleaned_data2);
+                    console.log(stack_data);
+                    
+                        for (var i = 0; i <= stack_data.length - 1; i++) {
+                        for (var j = 0; j <= stack_data[i].values.length - 1; j++) {
+                            norm = stack_data[stack_data.length-1].values[j].y + stack_data[stack_data.length-1].values[j].y0
+                            stack_data[i].values[j].y = stack_data[i].values[j].y / norm
+                            stack_data[i].values[j].y0 = stack_data[i].values[j].y0 / norm
+                        };
+                    };
+
+                    var layers = svg_plot_canvas2.selectAll(".layer").data(stack_data, function(d,i){ return i + '-' + d.values[0].y0 + '-' + d.values[0].y; });
+                    layers.exit().remove();
+                    var new_layers = layers.enter().append("g").attr("class", "layer").style("fill", function(d) { return color_book(d.type); });
+                    new_layers.selectAll("rect")
+                                .data(function(d) { return d.values; })
+                                .enter().append("rect")
+                                .attr("x", function(d) { return x2(d.dayofweek + 1) - 25; })
+                                .attr("y", function(d) { return y2(d.y + d.y0); })
+                                .attr("height", function(d) { return y2(d.y0) - y2(d.y + d.y0); })
+                                .attr("width", 50);
+                }
+
+
+                function plot_area_graph () {
+                    stack_data = stack(cleaned_data);
+                    if (normalize) {
+                        for (var i = 0; i <= stack_data.length - 1; i++) {
+                        for (var j = 0; j <= stack_data[i].values.length - 1; j++) {
+                            norm = stack_data[stack_data.length-1].values[j].y + stack_data[stack_data.length-1].values[j].y0
+                            stack_data[i].values[j].y = stack_data[i].values[j].y / norm
+                            stack_data[i].values[j].y0 = stack_data[i].values[j].y0 / norm
+                        };
+                    };
+                    };
+                    var layers = svg_plot_canvas.selectAll(".layer").data(stack_data, function(d,i){ return i + '-' + d.values[0].y0 + '-' + d.values[0].y; });
+                    layers.exit().remove();
+                    var new_layers = layers.enter().append("g").attr("class", "layer");
+                    new_layers.append("path")
+                            .attr("d", function(d) { return area(d.values); })
+                            .style("fill", function(d, i) { return color_book(d.type); });
+                }
+
+                set_data();
+            </script>
+
+        <div id = "ref"><h3>Reference</h3>
+            <ol>
+            <li>Area graph API/example: https://bl.ocks.org/mbostock/3885211</li>
+            <li>stacked bar chart API/example: https://bl.ocks.org/mbostock/3886208</li>
+            <li>Line graph API/example: https://bl.ocks.org/mbostock/3883245</li>
+            <li>Polygon: http://www.startutorial.com/articles/view/google-map-api-v3-polygon-shape-creator</li>
+            <li>Data source: https://www.kaggle.com/c/sf-crime</li>
+            </ol></div>
+        
+    </body>
+</html>

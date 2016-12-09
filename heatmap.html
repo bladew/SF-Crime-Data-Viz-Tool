@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Crime Heatmaps</title>
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3LxJV9iIW3FzxhbccjNy9W1Trg-yBvBE&libraries=visualization"></script>
+        <script src="http://d3js.org/d3.v3.js"></script>
+    </head>
+
+    <body>
+        <div class="buttons" id="category">
+            <button class="button" onclick="change('fraud', selected_year)">Fraud</button>
+            <button class="button" onclick="change('robbery', selected_year)">Robbery</button>
+            <button class="button" onclick="change('runaway', selected_year)">Runaway</button>
+            <button class="button" onclick="change('suicide', selected_year)">Suicide</button>
+            <button class="button" onclick="change('arson', selected_year)">Arson</button>
+            <button class="button" onclick="change('kidnapping', selected_year)">Kidnapping</button>
+            <button class="button" onclick="change('prostitution', selected_year)">Prostitution</button>
+            <button class="button" onclick="change('assault', selected_year)">Assault</button>
+            <button class="button" onclick="change('gambling', selected_year)">Gambling</button>
+            <button class="button" onclick="change('trespass', selected_year)">Trespass</button>
+            <button class="button" onclick="change('burglary', selected_year)">Burglary</button>
+        </div>
+        <div class="buttons" id="year">
+            <button class="button" onclick="change(selected_category, 2015)">2015</button>
+            <button class="button" onclick="change(selected_category, 2014)">2014</button>
+            <button class="button" onclick="change(selected_category, 2013)">2013</button>
+            <button class="button" onclick="change(selected_category, 2012)">2012</button>
+            <button class="button" onclick="change(selected_category, 2011)">2011</button>
+            <button class="button" onclick="change(selected_category, 2010)">2010</button>
+            <button class="button" onclick="change(selected_category, 2009)">2009</button>
+            <button class="button" onclick="change(selected_category, 2008)">2008</button>
+            <button class="button" onclick="change(selected_category, 2007)">2007</button>
+        </div>
+
+        <div id="heatmap"></div>
+            <script>
+                var map, heatmap, selected_category = "fraud", selected_year = 2015,
+                category = {"fraud":"data/fraud.csv",
+                            "runaway":"data/runaway.csv",
+                            "suicide":"data/suicide.csv",
+                            "arson":"data/arson.csv",
+                            "kidnapping":"data/kidnapping.csv",
+                            "prostitution":"data/prostitution.csv",
+                            "assault":"data/assault.csv",
+                            "gambling":"data/gambling.csv",
+                            "trespass":"data/trespass.csv",
+                            "robbery":"data/robbery.csv",
+                            "burglary":"data/burglary.csv"};
+
+                // init the basic Google map
+                function init_map() {
+                    map = new google.maps.Map(document.getElementById('heatmap'), {
+                        zoom: 13,
+                        center: {lat: 37.751843, lng: -122.446185},
+                        mapTypeId: google.maps.MapTypeId.SATELLITE
+                    });
+
+                    heatmap = new google.maps.visualization.HeatmapLayer({
+                        map: map
+                    });
+                    set_data();
+                }
+
+                // reset the type and year; call set_data() plot on the map
+                function change (type, year) {
+                    if (selected_category != type) {
+                        selected_category = type;
+                        set_data();
+                    };
+                    if (selected_year != year) {
+                        selected_year = year;
+                        set_data();
+                    };
+                }
+
+                // util func for plotting the heatmap
+                function set_data() {
+                    d3.csv(category[selected_category], 
+                    function(d) {
+                        var datetime = new Date(d.Dates);
+                        if (datetime.getFullYear() == selected_year) {
+                            return new google.maps.LatLng(Number(d.Y), Number(d.X));
+                        };
+                    }, 
+                    function(error, data) {
+                        if (data.length > 20000) { data = data.slice(0,20000)};
+                            heatmap.setData(data);
+                    }
+                    );
+                }
+
+                init_map();
+            </script>
+    </body>
+</html>
