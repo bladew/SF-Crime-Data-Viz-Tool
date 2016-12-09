@@ -7,3 +7,5 @@ First tool: plot the crime onto Google Map to form a heatmap.
 Second tool: plot stacked line chart of crimes over time. Click on crime legend to plot the line chart of this crime over time.
 
 Third tool: plot stacked bar chart of crime distribution over day of week. 
+
+The tool needs a Google Map token to run but you can refer to the explorer.png and heatmap.png for the ideas.
